@@ -25,44 +25,35 @@ library(tidyverse)
 rats_brain = sub("_.*", "", colnames(brain))
 rats_liver = sub("_.*", "", colnames(liver))
 
+# finding unique strains
 strains_brain = unique(rats_brain)
 strains_liver = unique(rats_liver)
 
-# adding new row for strain
-#which i did at some point but now its deleted yay me
+# exchanging columns for rows
 new_brain = t(brain)
 new_liver = t(liver)
 
-means_brain = apply(X = new_brain, FUN = mean, MARGIN = 1)
-means_liver = apply(X = new_liver, FUN = mean, MARGIN = 1)
+# means of rows- MISTAKE
+#means_brain = apply(X = new_brain, FUN = mean, MARGIN = 1)
+#means_liver = apply(X = new_liver, FUN = mean, MARGIN = 1)
 
-new_brain = cbind(rats_brain, means_brain, new_brain)
-new_liver = cbind(rats_liver, means_liver, new_liver)
+# adding a strains column to new matrix
+new_brain = cbind(rats_brain, new_brain)
+new_liver = cbind(rats_liver, new_liver)
 
+# creating a matrix to store means strainXgene
+storagematrix = matrix(NA, nrow = length(strains_brain), ncol = dim(new_brain)[2], rownames = strains_brain, colnames = colnames(new_brain[2: length(new_brain[1,])]))
 
-new_liver %>%
-  group_by(rats_liver) %>%
-  summarize(mean(means_liver))
-
-new_brain %>%
-  group_by(rats_brain)
-
-storagematrix = matrix(NA, nrow = length(strains_brain), ncol = dim(new_brain)[2])
-for (i in 1:length(strains_brain))
+# calculate the means within each strain within each gene
+for (i in 1:length(strains_brain)) # going through each strain
 {
-  b = new_brain[new_brain[,"rats_brain"] == strains_brain[i],]
-  for (j in 3:dim(new_brain)[2])
+  b = new_brain[new_brain[,"rats_brain"] == strains_brain[i],] # extracting the rows where strain matches
+  for (j in 2:dim(new_brain)[2]) # Going through each gene
   {
-    v = mean(as.numeric(b[,j]))
-    r = j-2
-    storagematrix[i, r] = v
+    v = mean(as.numeric(b[,j])) # calculating mean across the strain for each gene
+    r = j-1
+    storagematrix[i, r] = v # storing
   }
-}
-
-
-for (i in new_brain[2:10,])
-{
-  summarize(mean(i))
 }
 
 
