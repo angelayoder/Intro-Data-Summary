@@ -8,6 +8,8 @@ Goals: Use Phenogen HRDP total RNA ensemble data for Brain and Liver to calculat
 # set working directory
 setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data")
 
+# round numbers
+
 library(tidyverse)
 
 # download brain and liver datasets
@@ -29,32 +31,92 @@ rats_liver = sub("_.*", "", colnames(liver))
 strains_brain = unique(rats_brain)
 strains_liver = unique(rats_liver)
 
-# exchanging columns for rows
+# vector for gene names
+genes_brain = rownames(brain)
+genes_liver = rownames(liver)
+
+# creating new data-frame : exchanging columns for rows
 new_brain = t(brain)
 new_liver = t(liver)
 
-# means of rows- MISTAKE
-#means_brain = apply(X = new_brain, FUN = mean, MARGIN = 1)
-#means_liver = apply(X = new_liver, FUN = mean, MARGIN = 1)
+new_brain = as.data.frame(new_brain)
+new_liver = as.data.frame(new_liver)
 
-# adding a strains column to new matrix
-new_brain = cbind(rats_brain, new_brain)
-new_liver = cbind(rats_liver, new_liver)
+# adding a strains as factor column to new matrix
+strain_factor_brain = rats_brain
+strain_factor_liver = rats_liver
+
+new_brain = cbind(strain_factor_brain, new_brain)
+new_liver = cbind(strain_factor_liver, new_liver)
+
+new_brain$strain_factor_brain = factor(new_brain$strain_factor_brain, levels = strains_brain)
+new_liver$strain_factor_liver = factor(new_liver$strain_factor_liver, levels = strains_liver)
+
+num_col_brain = dim(new_brain)[2] - 1
+num_col_liver = dim(new_liver)[2] - 1
 
 # creating a matrix to store means strainXgene
-storagematrix = matrix(NA, nrow = length(strains_brain), ncol = dim(new_brain)[2], rownames = strains_brain, colnames = colnames(new_brain[2: length(new_brain[1,])]))
+storagematrix_brain = matrix(NA, nrow = length(strains_brain), ncol = num_col_brain, dimnames = list(strains_brain, genes_brain)) 
+storagematrix_liver = matrix(NA, nrow = length(strains_liver), ncol = num_col_liver, dimnames = list(strains_liver, genes_liver))
 
 # calculate the means within each strain within each gene
 for (i in 1:length(strains_brain)) # going through each strain
 {
-  b = new_brain[new_brain[,"rats_brain"] == strains_brain[i],] # extracting the rows where strain matches
+  b = new_brain[new_brain$strain_factor_brain == strains_brain[i],] # extracting the rows where strain matches
   for (j in 2:dim(new_brain)[2]) # Going through each gene
   {
     v = mean(as.numeric(b[,j])) # calculating mean across the strain for each gene
     r = j-1
-    storagematrix[i, r] = v # storing
+    storagematrix_brain[i, r] = v # storing
   }
 }
+
+for (i in 1:length(strains_liver)) # going through each strain
+{
+  b = new_liver[new_liver$strain_factor_liver == strains_liver[i],] # extracting the rows where strain matches
+  for (j in 2:dim(new_liver)[2]) # Going through each gene
+  {
+    v = mean(as.numeric(b[,j])) # calculating mean across the strain for each gene
+    r = j-1
+    storagematrix_liver[i, r] = v # storing
+  }
+}
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data")
+write.csv(storagematrix_brain, "Means_strainXgene_brain.csv")
+write.csv(storagematrix_liver, "Means_strainXgene_liver.csv")
+
+```
+
+```{r}
+#### BROAD SENSE HERITABILITY ### factor is strain
+#https://www.biostars.org/p/295214/
+
+library(tidyverse)
+library(broom)
+# get rid of ERCC
+
+genes_brain = sub(".*-", "", genes_brain)
+genes_brain = c("strain_factor_brain", genes_brain)
+#genes_liver = sub("_.*", "", genes_liver)
+
+BSH = matrix(NA, nrow = 18384, ncol = 2)
+for (i in 18311:length(genes_brain))
+{
+  genes_brain[i] = paste("ERCC", genes_brain[i], sep = "")
+}
+colnames(new_brain) = genes_brain
+
+formulae = lapply(colnames(new_brain[,3:length(new_brain[1,])]), function (x) as.formula(paste(x, " ~ strain_factor_brain")))
+
+BSH = lapply(formulae, function(x) tidy(aov(x, data = new_brain))$sumsq)
+#name(res = format(formulae))
+
+
+unlist
+lapply(BSH, function(a) a[1]/(a[1] + a[2]))
+
+
+
 
 
 

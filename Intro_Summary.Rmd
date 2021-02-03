@@ -98,6 +98,7 @@ meanrange_liver = mean(range_liver)
 meanrange_brain = mean(range_brain)
 
 ### testing ###
+ liver[which.max(range_liver), grep('LEW', colnames(liver))]
 
 # find the largest values for range
 sort_range_liver = sort(range_liver)
@@ -107,8 +108,8 @@ sort_range_brain = sort(range_brain)
 outliers = tail(sort_range_liver, n = 3)
 
 # logical vector to weed out outliers
-outlier_logical_liver = range_liver < 32
-outlier_logical_brain = range_brain < 32
+outlier_logical_liver = range_liver > 32
+outlier_logical_brain = range_brain > 32
 
 # find indices and names of genes that are outliers
 index = c()
