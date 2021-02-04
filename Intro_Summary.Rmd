@@ -99,7 +99,30 @@ meanrange_brain = mean(range_brain)
 
 ### testing ###
  liver[which.max(range_liver), grep('LEW', colnames(liver))]
-
+ 
+ outlier_liver = which(range_liver > 32)
+ outlier_brain = which(range_brain > 32)
+ 
+ #find rat names that have outliers
+ beep = lapply(brain[outlier_brain,], which.max)
+ beepbeep = names(beep)
+ table(beepbeep)
+ choo = lapply(liver[outlier_liver,], which.max)
+ choochoo = names(choo)
+ table(choochoo)
+ 
+ liver[as.numeric(choo), grep('ACI', colnames(liver))]
+ brain[as.numeric(beep), grep("SS.JrHsd", colnames(brain))]
+ 
+ #double checking outlier ranges
+ max_liver = as.numeric(lapply(liver[outlier_liver,], max))
+ min_liver = as.numeric(lapply(liver[outlier_liver,], min))
+ checking_liver = max_liver - min_liver
+ 
+ max_brain = as.numeric(lapply(brain[outlier_brain,], max))
+ min_brain = as.numeric(lapply(brain[outlier_brain,], min))
+ checking_brain = max_brain - min_brain
+ 
 # find the largest values for range
 sort_range_liver = sort(range_liver)
 sort_range_brain = sort(range_brain)
