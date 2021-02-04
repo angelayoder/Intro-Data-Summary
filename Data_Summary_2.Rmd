@@ -8,10 +8,6 @@ Goals: Use Phenogen HRDP total RNA ensemble data for Brain and Liver to calculat
 # set working directory
 setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data")
 
-# round numbers
-
-library(tidyverse)
-
 # download brain and liver datasets
 brain = read.csv("PhenoGen.HRDP.v5.totalRNA.Brain.gene.ensembl96.txt", header = T, sep = "\t")
 liver = read.csv("PhenoGen.HRDP.v5.totalRNA.Liver.gene.ensembl96.txt", header = T, sep = "\t")
@@ -31,16 +27,28 @@ rats_liver = sub("_.*", "", colnames(liver))
 strains_brain = unique(rats_brain)
 strains_liver = unique(rats_liver)
 
-# vector for gene names
-genes_brain = rownames(brain)
-genes_liver = rownames(liver)
-
 # creating new data-frame : exchanging columns for rows
 new_brain = t(brain)
 new_liver = t(liver)
 
+#get rid of ERCC cols
+
+  #indices of cols with ERCC
+elim_liver = grep("ERCC", colnames(new_liver))
+elim_brain = grep("ERCC", colnames(new_brain))
+  #creating new end point for columns
+newdim_liver = elim_liver[1] - 1
+newdim_brain = elim_brain[1] -1
+  #cutting off ERCC cols
+new_brain = new_brain[,1:newdim_brain]
+new_liver = new_liver[,1:newdim_liver]
+
 new_brain = as.data.frame(new_brain)
 new_liver = as.data.frame(new_liver)
+
+# vector for gene names
+genes_brain = colnames(new_brain[,2:dim(new_brain)[2]])
+genes_liver = colnames(new_liver[,2:dim(new_liver)[2]])
 
 # adding a strains as factor column to new matrix
 strain_factor_brain = rats_brain
@@ -52,8 +60,8 @@ new_liver = cbind(strain_factor_liver, new_liver)
 new_brain$strain_factor_brain = factor(new_brain$strain_factor_brain, levels = strains_brain)
 new_liver$strain_factor_liver = factor(new_liver$strain_factor_liver, levels = strains_liver)
 
-num_col_brain = dim(new_brain)[2] - 1
-num_col_liver = dim(new_liver)[2] - 1
+num_col_brain = length(genes_brain)
+num_col_liver = length(genes_liver)
 
 # creating a matrix to store means strainXgene
 storagematrix_brain = matrix(NA, nrow = length(strains_brain), ncol = num_col_brain, dimnames = list(strains_brain, genes_brain)) 
@@ -67,6 +75,7 @@ for (i in 1:length(strains_brain)) # going through each strain
   {
     v = mean(as.numeric(b[,j])) # calculating mean across the strain for each gene
     r = j-1
+    v = format(round(v, 2), nsmall = 2)
     storagematrix_brain[i, r] = v # storing
   }
 }
@@ -78,6 +87,7 @@ for (i in 1:length(strains_liver)) # going through each strain
   {
     v = mean(as.numeric(b[,j])) # calculating mean across the strain for each gene
     r = j-1
+    v = format(round(v, 2), nsmall = 2)
     storagematrix_liver[i, r] = v # storing
   }
 }
@@ -90,30 +100,27 @@ write.csv(storagematrix_liver, "Means_strainXgene_liver.csv")
 ```{r}
 #### BROAD SENSE HERITABILITY ### factor is strain
 #https://www.biostars.org/p/295214/
+#https://stackoverflow.com/questions/45461298/how-can-i-obtain-the-rsquare-out-of-an-anova-in-r
 
-library(tidyverse)
 library(broom)
-# get rid of ERCC
 
-genes_brain = sub(".*-", "", genes_brain)
-genes_brain = c("strain_factor_brain", genes_brain)
-#genes_liver = sub("_.*", "", genes_liver)
+formula_brain = lapply(colnames(new_brain[,2:length(new_brain[1,])]), function (x) as.formula(paste(x, " ~ strain_factor_brain")))
+formula_liver = lapply(colnames(new_liver[,2:length(new_liver[1,])]), function (x) as.formula(paste(x, " ~ strain_factor_liver")))
 
-BSH = matrix(NA, nrow = 18384, ncol = 2)
-for (i in 18311:length(genes_brain))
-{
-  genes_brain[i] = paste("ERCC", genes_brain[i], sep = "")
-}
-colnames(new_brain) = genes_brain
+BSH_brain = lapply(formula_brain, function(x) tidy(aov(x, data = new_brain))$sumsq)
+BSH_liver = lapply(formula_liver, function(x) tidy(aov(x, data = new_liver))$sumsq)
 
-formulae = lapply(colnames(new_brain[,3:length(new_brain[1,])]), function (x) as.formula(paste(x, " ~ strain_factor_brain")))
+r.squared_brain = lapply(BSH_brain, function(a) a[1]/(a[1] + a[2]))
+r.squared_liver = lapply(BSH_liver, function(a) a[1]/(a[1] + a[2]))
+r.squared_brain = unlist(r.squared_brain)
+r.squared_liver = unlist(r.squared_liver)
+names_brain = as.character(formula_brain)
+names_liver = as.character(formula_liver)
 
-BSH = lapply(formulae, function(x) tidy(aov(x, data = new_brain))$sumsq)
-#name(res = format(formulae))
+fin.r.squared_brain = cbind(names_brain, r.squared_brain)
+fin.r.squared_liver = cbind(names_liver, r.squared_liver)
 
-
-unlist
-lapply(BSH, function(a) a[1]/(a[1] + a[2]))
+#new_brain$strain_factor_brain = factor(new_brain$strain_factor_brain, levels = strains_brain)
 
 
 
