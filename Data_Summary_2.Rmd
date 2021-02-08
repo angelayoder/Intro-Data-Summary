@@ -60,8 +60,8 @@ new_liver = cbind(strain_factor_liver, new_liver)
 new_brain$strain_factor_brain = factor(new_brain$strain_factor_brain, levels = strains_brain)
 new_liver$strain_factor_liver = factor(new_liver$strain_factor_liver, levels = strains_liver)
 
-num_col_brain = length(genes_brain)
-num_col_liver = length(genes_liver)
+num_col_brain = length(genes_brain) 
+num_col_liver = length(genes_liver) 
 
 # creating a matrix to store means strainXgene
 storagematrix_brain = matrix(NA, nrow = length(strains_brain), ncol = num_col_brain, dimnames = list(strains_brain, genes_brain)) 
@@ -76,6 +76,7 @@ for (i in 1:length(strains_brain)) # going through each strain
     v = mean(as.numeric(b[,j])) # calculating mean across the strain for each gene
     r = j-1
     v = format(round(v, 2), nsmall = 2)
+    v = as.numeric(v)
     storagematrix_brain[i, r] = v # storing
   }
 }
@@ -88,6 +89,7 @@ for (i in 1:length(strains_liver)) # going through each strain
     v = mean(as.numeric(b[,j])) # calculating mean across the strain for each gene
     r = j-1
     v = format(round(v, 2), nsmall = 2)
+    v = as.numeric(v)
     storagematrix_liver[i, r] = v # storing
   }
 }
