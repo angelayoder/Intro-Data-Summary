@@ -1,9 +1,26 @@
-# Data Summary of HRDP RNA Data from the Brain and Liver Continued 
-## Angela Yoder
+---
+title: "Data Visualizations for HRDP RNA Data from the Brain and Liver"
+author: "Angela Yoder"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: false
+    fig_caption: yes
+    fig_retina: 1 
+    code_folding: hide
+---
 
-Goals: Use Phenogen HRDP total RNA ensemble data for Brain and Liver to calculate Broad Sense Heritability and Hierarchical Clustering
+**The goals of this program are:**
+
+1. Apply a PCA to the log2 transformed data after elimination of outliers
+2. Determine the number of relevant PCs for adjustment
+3. Export all PCs
+4. Export residuals after adjustment by first 20 PCAs
 
 ```{r}
+# Data Import
 
 # set working directory
 setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data")
@@ -15,9 +32,33 @@ liver = read.csv("PhenoGen.HRDP.v5.totalRNA.Liver.gene.ensembl96.txt", header = 
 
 ```{r}
 
-library(tidyverse)
-## Means of strains
+# Range of Genes
 
+# distribution of gene ranges
+range_brain = numeric(dim(brain)[1])
+for (i in 1:dim(brain)[1])
+{
+  r = range(brain[i,])
+  m = r[2] - r[1]
+  range_brain[i] = 2^m
+}
+
+range_liver = numeric(dim(liver)[1])
+for (i in 1:dim(liver)[1])
+{
+  r = range(liver[i,])
+  m = r[2] - r[1]
+  range_liver[i] = 2^m
+}
+
+hist(range_brain)
+hist(range_liver)
+
+```
+
+```{r}
+
+# Strain Means
 
 # extracting strain from colname
 rats_brain = sub("_.*", "", colnames(brain))
@@ -60,6 +101,7 @@ new_liver = cbind(strain_factor_liver, new_liver)
 new_brain$strain_factor_brain = factor(new_brain$strain_factor_brain, levels = strains_brain)
 new_liver$strain_factor_liver = factor(new_liver$strain_factor_liver, levels = strains_liver)
 
+# get number of genes for each dataset
 num_col_brain = length(genes_brain) 
 num_col_liver = length(genes_liver) 
 
@@ -93,16 +135,40 @@ for (i in 1:length(strains_liver)) # going through each strain
     storagematrix_liver[i, r] = v # storing
   }
 }
-setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data")
-write.csv(storagematrix_brain, "Means_strainXgene_brain.csv")
-write.csv(storagematrix_liver, "Means_strainXgene_liver.csv")
+
+# RLE
+
+
+median_brain = as.numeric(apply(storagematrix_brain, MARGIN = 2, FUN = median))
+median_liver = as.numeric(apply(storagematrix_liver, MARGIN = 2, FUN = median))
+
+
+RLE_brain = matrix(NA, nrow = dim(storagematrix_brain)[1], ncol = dim(storagematrix_brain)[2])
+for (i in 1:length(storagematrix_brain[1,]))
+{
+  RLE_brain[,i] = abs(median_brain[i] - storagematrix_brain[,i])
+}
+
+RLE_liver = matrix(NA, nrow = dim(storagematrix_liver)[1], ncol = dim(storagematrix_liver)[2])
+for (i in 1:length(storagematrix_liver[1,]))
+{
+  RLE_liver[,i] = abs(median_liver[i] - storagematrix_liver[,i])
+}
+
+colnames(RLE_brain) = colnames(storagematrix_brain)
+colnames(RLE_liver) = colnames(storagematrix_liver)
+rownames(RLE_brain) = rownames(storagematrix_brain)
+rownames(RLE_liver) = rownames(storagematrix_liver)
+
+
+boxplot(x = t(RLE_brain), main = "RLE plot: Brain dataset", xlab = "Strain")
+boxplot(x = t(RLE_liver), main = "RLE plot: Liver dataset", xlab = "Strain")
 
 ```
 
 ```{r}
-#### BROAD SENSE HERITABILITY ### factor is strain
-#https://www.biostars.org/p/295214/
-#https://stackoverflow.com/questions/45461298/how-can-i-obtain-the-rsquare-out-of-an-anova-in-r
+
+#Broad Sense Heritability
 
 library(broom)
 
@@ -122,18 +188,40 @@ names_liver = as.character(formula_liver)
 fin.r.squared_brain = cbind(names_brain, r.squared_brain)
 fin.r.squared_liver = cbind(names_liver, r.squared_liver)
 
-setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data")
-write.csv(fin.r.squared_brain, "R_Squared_Brain.csv")
-write.csv(fin.r.squared_liver, "R_Squared_Liver.csv")
-
 hist(as.numeric(fin.r.squared_brain[,2]))
 hist(as.numeric(fin.r.squared_liver[,2]))
+```
 
-#new_brain$strain_factor_brain = factor(new_brain$strain_factor_brain, levels = strains_brain)
+```{r}
 
+#Hierarchical Clustering
 
+for_clustering_brain = as.dist(1 - abs(cor(x = brain, method = "spearman")))
+for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
 
+h_clustering_brain = hclust(for_clustering_brain)
+h_clustering_liver = hclust(for_clustering_liver)
 
-
+plot(h_clustering_brain)
+plot(h_clustering_liver)
 
 ```
+
+Different clustering strategies?
+
+```{r}
+
+# PCA Plot
+
+# PCA
+library(PCAtools)
+
+# extracting strain from colname
+rats_brain = sub("_.*", "", colnames(brain))
+rats_liver = sub("_.*", "", colnames(liver))
+
+pca_brain <- pca(brain, center=TRUE, scale=TRUE)
+pca_liver = pca(liver, center = TRUE, scale = TRUE)
+
+biplot(pca_brain)
+biplot(pca_liver)
