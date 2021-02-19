@@ -60,6 +60,7 @@ new_liver = cbind(strain_factor_liver, new_liver)
 new_brain$strain_factor_brain = factor(new_brain$strain_factor_brain, levels = strains_brain)
 new_liver$strain_factor_liver = factor(new_liver$strain_factor_liver, levels = strains_liver)
 
+# get number of genes for each dataset
 num_col_brain = length(genes_brain) 
 num_col_liver = length(genes_liver) 
 

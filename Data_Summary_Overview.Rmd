@@ -2,32 +2,38 @@
 title: "Data Visualizations for HRDP RNA Data from the Brain and Liver"
 author: "Angela Yoder"
 date: "`r Sys.Date()`"
-output:
-  html_document:
-    toc: true
-    toc_float: true
-    toc_collapsed: false
-    fig_caption: yes
-    fig_retina: 1 
-    code_folding: hide
 ---
 
 **The goals of this program are:**
 
-1. Apply a PCA to the log2 transformed data after elimination of outliers
-2. Determine the number of relevant PCs for adjustment
-3. Export all PCs
-4. Export residuals after adjustment by first 20 PCAs
+1. Range of genes in histogram
+2. Strain means via RLE
+3. Broad Sense Heritability
+4. Hierarchical Clustering Plot
+5. PCA plot
+
 
 ```{r}
 # Data Import
 
 # set working directory
-setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data")
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
 
 # download brain and liver datasets
 brain = read.csv("PhenoGen.HRDP.v5.totalRNA.Brain.gene.ensembl96.txt", header = T, sep = "\t")
 liver = read.csv("PhenoGen.HRDP.v5.totalRNA.Liver.gene.ensembl96.txt", header = T, sep = "\t")
+
+# download strain means dataset
+storagematrix_brain = read.csv("Means_strainXgene_brain.csv")
+storagematrix_liver = read.csv("Means_strainXgene_liver.csv")
+
+# download BSH vectors
+fin.r.squared_brain = read.csv("R_Squared_Brain.csv")
+fin.r.squared_liver = read.csv("R_Squared_Liver.csv")
+
+# download RLE matrices
+RLE_brain = read.csv("RLE_Brain.csv")
+RLE_liver = read.csv("RLE_Liver.csv")
 ```
 
 ```{r}
@@ -51,118 +57,18 @@ for (i in 1:dim(liver)[1])
   range_liver[i] = 2^m
 }
 
-hist(range_brain)
-hist(range_liver)
+hist(range_brain, main = "Range by Gene: Brain", xlab = "Range", breaks = 24)
+hist(range_liver, main = "Range by Gene: Liver", xlab = "Range", breaks = 24)
 
 ```
 
 ```{r}
 
-# Strain Means
-
-# extracting strain from colname
-rats_brain = sub("_.*", "", colnames(brain))
-rats_liver = sub("_.*", "", colnames(liver))
-
-# finding unique strains
-strains_brain = unique(rats_brain)
-strains_liver = unique(rats_liver)
-
-# creating new data-frame : exchanging columns for rows
-new_brain = t(brain)
-new_liver = t(liver)
-
-#get rid of ERCC cols
-
-  #indices of cols with ERCC
-elim_liver = grep("ERCC", colnames(new_liver))
-elim_brain = grep("ERCC", colnames(new_brain))
-  #creating new end point for columns
-newdim_liver = elim_liver[1] - 1
-newdim_brain = elim_brain[1] -1
-  #cutting off ERCC cols
-new_brain = new_brain[,1:newdim_brain]
-new_liver = new_liver[,1:newdim_liver]
-
-new_brain = as.data.frame(new_brain)
-new_liver = as.data.frame(new_liver)
-
-# vector for gene names
-genes_brain = colnames(new_brain[,2:dim(new_brain)[2]])
-genes_liver = colnames(new_liver[,2:dim(new_liver)[2]])
-
-# adding a strains as factor column to new matrix
-strain_factor_brain = rats_brain
-strain_factor_liver = rats_liver
-
-new_brain = cbind(strain_factor_brain, new_brain)
-new_liver = cbind(strain_factor_liver, new_liver)
-
-new_brain$strain_factor_brain = factor(new_brain$strain_factor_brain, levels = strains_brain)
-new_liver$strain_factor_liver = factor(new_liver$strain_factor_liver, levels = strains_liver)
-
-# get number of genes for each dataset
-num_col_brain = length(genes_brain) 
-num_col_liver = length(genes_liver) 
-
-# creating a matrix to store means strainXgene
-storagematrix_brain = matrix(NA, nrow = length(strains_brain), ncol = num_col_brain, dimnames = list(strains_brain, genes_brain)) 
-storagematrix_liver = matrix(NA, nrow = length(strains_liver), ncol = num_col_liver, dimnames = list(strains_liver, genes_liver))
-
-# calculate the means within each strain within each gene
-for (i in 1:length(strains_brain)) # going through each strain
-{
-  b = new_brain[new_brain$strain_factor_brain == strains_brain[i],] # extracting the rows where strain matches
-  for (j in 2:dim(new_brain)[2]) # Going through each gene
-  {
-    v = mean(as.numeric(b[,j])) # calculating mean across the strain for each gene
-    r = j-1
-    v = format(round(v, 2), nsmall = 2)
-    v = as.numeric(v)
-    storagematrix_brain[i, r] = v # storing
-  }
-}
-
-for (i in 1:length(strains_liver)) # going through each strain
-{
-  b = new_liver[new_liver$strain_factor_liver == strains_liver[i],] # extracting the rows where strain matches
-  for (j in 2:dim(new_liver)[2]) # Going through each gene
-  {
-    v = mean(as.numeric(b[,j])) # calculating mean across the strain for each gene
-    r = j-1
-    v = format(round(v, 2), nsmall = 2)
-    v = as.numeric(v)
-    storagematrix_liver[i, r] = v # storing
-  }
-}
-
 # RLE
 
 
-median_brain = as.numeric(apply(storagematrix_brain, MARGIN = 2, FUN = median))
-median_liver = as.numeric(apply(storagematrix_liver, MARGIN = 2, FUN = median))
-
-
-RLE_brain = matrix(NA, nrow = dim(storagematrix_brain)[1], ncol = dim(storagematrix_brain)[2])
-for (i in 1:length(storagematrix_brain[1,]))
-{
-  RLE_brain[,i] = abs(median_brain[i] - storagematrix_brain[,i])
-}
-
-RLE_liver = matrix(NA, nrow = dim(storagematrix_liver)[1], ncol = dim(storagematrix_liver)[2])
-for (i in 1:length(storagematrix_liver[1,]))
-{
-  RLE_liver[,i] = abs(median_liver[i] - storagematrix_liver[,i])
-}
-
-colnames(RLE_brain) = colnames(storagematrix_brain)
-colnames(RLE_liver) = colnames(storagematrix_liver)
-rownames(RLE_brain) = rownames(storagematrix_brain)
-rownames(RLE_liver) = rownames(storagematrix_liver)
-
-
-boxplot(x = t(RLE_brain), main = "RLE plot: Brain dataset", xlab = "Strain")
-boxplot(x = t(RLE_liver), main = "RLE plot: Liver dataset", xlab = "Strain")
+boxplot(x = t(RLE_brain[,2:dim(RLE_brain)[2]]), main = "RLE plot: Brain dataset", xlab = "Strain")
+boxplot(x = t(RLE_liver[,2:dim(RLE_liver)[2]]), main = "RLE plot: Liver dataset", xlab = "Strain")
 
 ```
 
@@ -170,26 +76,8 @@ boxplot(x = t(RLE_liver), main = "RLE plot: Liver dataset", xlab = "Strain")
 
 #Broad Sense Heritability
 
-library(broom)
-
-formula_brain = lapply(colnames(new_brain[,2:length(new_brain[1,])]), function (x) as.formula(paste(x, " ~ strain_factor_brain")))
-formula_liver = lapply(colnames(new_liver[,2:length(new_liver[1,])]), function (x) as.formula(paste(x, " ~ strain_factor_liver")))
-
-BSH_brain = lapply(formula_brain, function(x) tidy(aov(x, data = new_brain))$sumsq)
-BSH_liver = lapply(formula_liver, function(x) tidy(aov(x, data = new_liver))$sumsq)
-
-r.squared_brain = lapply(BSH_brain, function(a) a[1]/(a[1] + a[2]))
-r.squared_liver = lapply(BSH_liver, function(a) a[1]/(a[1] + a[2]))
-r.squared_brain = unlist(r.squared_brain)
-r.squared_liver = unlist(r.squared_liver)
-names_brain = as.character(formula_brain)
-names_liver = as.character(formula_liver)
-
-fin.r.squared_brain = cbind(names_brain, r.squared_brain)
-fin.r.squared_liver = cbind(names_liver, r.squared_liver)
-
-hist(as.numeric(fin.r.squared_brain[,2]))
-hist(as.numeric(fin.r.squared_liver[,2]))
+hist(as.numeric(fin.r.squared_brain[,3]), main = "Broad Sense Heritability: Brain", xlab = "R-Squared Value")
+hist(as.numeric(fin.r.squared_liver[,3]), main = "Broad Sense Heritability: Liver", xlab = "R-Squared Value")
 ```
 
 ```{r}
@@ -202,8 +90,8 @@ for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
 h_clustering_brain = hclust(for_clustering_brain)
 h_clustering_liver = hclust(for_clustering_liver)
 
-plot(h_clustering_brain)
-plot(h_clustering_liver)
+plot(h_clustering_brain, main = "Hierarchical Clustering: Brain", xlab = "")
+plot(h_clustering_liver, main = "Hierarchical Clustering: Liver", xlab = "")
 
 ```
 
@@ -215,10 +103,6 @@ Different clustering strategies?
 
 # PCA
 library(PCAtools)
-
-# extracting strain from colname
-rats_brain = sub("_.*", "", colnames(brain))
-rats_liver = sub("_.*", "", colnames(liver))
 
 pca_brain <- pca(brain, center=TRUE, scale=TRUE)
 pca_liver = pca(liver, center = TRUE, scale = TRUE)

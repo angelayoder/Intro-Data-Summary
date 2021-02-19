@@ -88,7 +88,7 @@ for (i in 1:dim(brain)[1])
 
 range_liver = numeric(dim(liver)[1])
 for (i in 1:dim(liver)[1])
-{
+{xz                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
   r = range(liver[i,])
   m = r[2] - r[1]
   range_liver[i] = 2^m
