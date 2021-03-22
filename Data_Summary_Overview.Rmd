@@ -46,7 +46,7 @@ for (i in 1:dim(brain)[1])
 {
   r = range(brain[i,])
   m = r[2] - r[1]
-  range_brain[i] = 2^m
+  range_brain[i] = m
 }
 
 range_liver = numeric(dim(liver)[1])
@@ -54,11 +54,17 @@ for (i in 1:dim(liver)[1])
 {
   r = range(liver[i,])
   m = r[2] - r[1]
-  range_liver[i] = 2^m
+  range_liver[i] = m
 }
 
-hist(range_brain, main = "Range by Gene: Brain", xlab = "Range", breaks = 24)
-hist(range_liver, main = "Range by Gene: Liver", xlab = "Range", breaks = 24)
+hist(range_brain, main = "Range by Gene: Brain", xlab = "Range")
+hist(range_liver, main = "Range by Gene: Liver", xlab = "Range")
+
+hist(range_brain, main = "Range by Gene: Brain, Zoom", xlab = "Range", xlim = range(0:8))
+hist(range_liver, main = "Range by Gene: Liver, Zoom", xlab = "Range", xlim = range(0:8))
+
+boxplot(range_brain, main = "Range by Gene: Brain, Zoom", ylim = range(0:10))
+boxplot(range_liver, main = "Range by Gene: Liver, Zoom", ylim = range(0:10))
 
 ```
 
@@ -67,9 +73,11 @@ hist(range_liver, main = "Range by Gene: Liver", xlab = "Range", breaks = 24)
 # RLE
 
 
-boxplot(x = t(RLE_brain[,2:dim(RLE_brain)[2]]), main = "RLE plot: Brain dataset", xlab = "Strain")
-boxplot(x = t(RLE_liver[,2:dim(RLE_liver)[2]]), main = "RLE plot: Liver dataset", xlab = "Strain")
+boxplot(x = t(RLE_brain), main = "RLE plot: Brain dataset", xlab = "Strain")
+boxplot(x = t(RLE_liver), main = "RLE plot: Liver dataset", xlab = "Strain")
 
+boxplot(x = t(RLE_brain), main = "RLE plot: Brain dataset, Zoom", xlab = "Strain", ylim = range(-5:5))
+boxplot(x = t(RLE_liver), main = "RLE plot: Liver dataset, Zoom", xlab = "Strain", ylim = range(-5:5))
 ```
 
 ```{r}
@@ -90,12 +98,53 @@ for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
 h_clustering_brain = hclust(for_clustering_brain)
 h_clustering_liver = hclust(for_clustering_liver)
 
-plot(h_clustering_brain, main = "Hierarchical Clustering: Brain", xlab = "")
-plot(h_clustering_liver, main = "Hierarchical Clustering: Liver", xlab = "")
+# By Strain
+
+rats_brain = sub("_.*", "", colnames(brain))
+rats_liver = sub("_.*", "", colnames(liver))
+
+color_brain = labels2colors(rats_brain)
+color_liver = labels2colors(rats_liver)
+
+plotDendroAndColors(h_clustering_brain, color_brain)
+plotDendroAndColors(h_clustering_liver, color_liver)
+
+# By Batch
+
+batch_brain = as.numeric(sub(".*batch", "", colnames(brain)))
+batch_liver = as.numeric(sub(".*batch", "", colnames(liver)))
+
+color_batch_brain = labels2colors(batch_brain)
+color_batch_liver = labels2colors(batch_liver)
+
+plotDendroAndColors(h_clustering_brain, color_batch_brain)
+plotDendroAndColors(h_clustering_liver, color_batch_liver)
+
+# By Recombinant v. Inbred
+
+hxb_brain = grep("HXB", colnames(brain))
+bxh_brain = grep("BXH", colnames(brain))
+recombinant_brain = sort(c(hxb_brain,bxh_brain))
+recomblog_brain = 1:length(colnames(brain))
+recomblog_brain[recombinant_brain] = 0
+recomblog_brain = as.logical(recomblog_brain)
+
+hxb_liver = grep("HXB", colnames(liver))
+bxh_liver = grep("BXH", colnames(liver))
+recombinant_liver = sort(c(hxb_liver,bxh_liver))
+recomblog_liver = 1:length(colnames(liver))
+recomblog_liver[recombinant_liver] = 0
+recomblog_liver = as.logical(recomblog_liver)
+
+color_recomb_brain = labels2colors(recomblog_brain)
+color_recomb_liver = labels2colors(recomblog_liver)
+
+plotDendroAndColors(h_clustering_brain, color_recomb_brain)
+plotDendroAndColors(h_clustering_liver, color_recomb_liver)
 
 ```
 
-Different clustering strategies?
+
 
 ```{r}
 
@@ -109,3 +158,37 @@ pca_liver = pca(liver, center = TRUE, scale = TRUE)
 
 biplot(pca_brain)
 biplot(pca_liver)
+
+# by recombinant v. inbred
+
+mat = matrix(recomblog_brain, nrow = length(recomblog_brain), ncol = 1)
+rownames(mat) = colnames(brain)
+colnames(mat) = c("col")
+
+mat2 = matrix(recomblog_liver, nrow = length(recomblog_liver), ncol = 1)
+rownames(mat2) = colnames(liver)
+colnames(mat2) = c("col")
+
+pca_brain = pca(brain, meta = mat, center=TRUE, scale=TRUE)
+pca_liver = pca(liver, meta = mat2, center = TRUE, scale = TRUE)
+
+biplot(pca_brain, colby = "col")
+biplot(pca_liver, colby = "col")
+
+# by batch
+
+mat = matrix(batch_brain, nrow = length(batch_brain), ncol = 1)
+rownames(mat) = colnames(brain)
+colnames(mat) = c("col")
+
+mat2 = matrix(batch_liver, nrow = length(batch_liver), ncol = 1)
+rownames(mat2) = colnames(liver)
+colnames(mat2) = c("col")
+
+pca_brain = pca(brain, meta = mat, center=TRUE, scale=TRUE)
+pca_liver = pca(liver, meta = mat2, center = TRUE, scale = TRUE)
+
+biplot(pca_brain, colby = "col")
+biplot(pca_liver, colby = "col")
+```
+
