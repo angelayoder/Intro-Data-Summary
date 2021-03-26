@@ -1,0 +1,41 @@
+```{r}
+
+# set working directory
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
+
+# download brain and liver datasets
+brain = read.csv("PhenoGen.HRDP.v5.totalRNA.Brain.gene.ensembl96.txt", header = T, sep = "\t")
+liver = read.csv("PhenoGen.HRDP.v5.totalRNA.Liver.gene.ensembl96.txt", header = T, sep = "\t")
+
+library(WGCNA)
+library(tidyverse)
+library(biomaRt)
+
+ensembl = useEnsembl(biomart="ensembl")
+ensembl = useEnsembl(biomart="ensembl",dataset = "rnorvegicus_gene_ensembl")
+get_anno = getBM(attributes=c("ensembl_gene_id",
+                              "external_gene_name",
+                              "description",
+                              "chromosome_name",
+                              "start_position",
+                              "end_position",
+                              "gene_biotype"),
+                 filters = 'biotype',
+                 values = "protein_coding",
+                 mart = ensembl)
+
+findpro_brain = match(get_anno$ensembl_gene_id, rownames(brain))
+findpro_brain = findpro_brain %>%
+  na.omit %>%
+  sort
+
+
+findpro_liver = match(get_anno$ensembl_gene_id, rownames(liver))
+findpro_liver = findpro_liver %>%
+  na.omit %>%
+  sort
+
+protein_brain = brain[findpro_brain,]
+protein_liver = liver[findpro_liver,]
+```
+
