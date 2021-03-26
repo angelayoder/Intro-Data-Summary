@@ -1,0 +1,99 @@
+
+It appears there is more consistency in outliers with brain dataset than liver. There were three different individuals that made up the majority of highest values in the brain dataset. The liver dataset rarely had a consistent largest value. Only one was the highest three times. 
+
+```{r}
+# set working directory
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
+
+# download brain and liver datasets
+brain = read.csv("PhenoGen.HRDP.v5.totalRNA.Brain.gene.ensembl96.txt", header = T, sep = "\t")
+liver = read.csv("PhenoGen.HRDP.v5.totalRNA.Liver.gene.ensembl96.txt", header = T, sep = "\t")
+
+# Pearson
+for_clustering_brain = as.dist(1 - abs(cor(x = brain, method = "pearson")))
+for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "pearson")))
+
+h_clustering_brain = hclust(for_clustering_brain)
+h_clustering_liver = hclust(for_clustering_liver)
+
+plot(h_clustering_brain, cex = 0.25)
+plot(h_clustering_liver, cex = 0.25)
+
+# Single
+
+for_clustering_brain = as.dist(1 - abs(cor(x = brain, method = "spearman")))
+for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
+
+h_clustering_brain = hclust(for_clustering_brain, method = "single")
+h_clustering_liver = hclust(for_clustering_liver, method = "single")
+
+plot(h_clustering_brain, cex = 0.25)
+plot(h_clustering_liver, cex = 0.25)
+
+# average
+
+for_clustering_brain = as.dist(1 - abs(cor(x = brain, method = "spearman")))
+for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
+
+h_clustering_brain = hclust(for_clustering_brain, method = "average")
+h_clustering_liver = hclust(for_clustering_liver, method = "average")
+
+plot(h_clustering_brain, cex = 0.25)
+plot(h_clustering_liver, cex = 0.25)
+
+# centroid
+
+for_clustering_brain = as.dist(1 - abs(cor(x = brain, method = "spearman")))
+for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
+
+h_clustering_brain = hclust(for_clustering_brain, method = "centroid")
+h_clustering_liver = hclust(for_clustering_liver, method = "centroid")
+
+plot(h_clustering_brain, cex = 0.25)
+plot(h_clustering_liver, cex = 0.25)
+
+# median
+
+for_clustering_brain = as.dist(1 - abs(cor(x = brain, method = "spearman")))
+for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
+
+h_clustering_brain = hclust(for_clustering_brain, method = "median")
+h_clustering_liver = hclust(for_clustering_liver, method = "median")
+
+plot(h_clustering_brain, cex = 0.25)
+plot(h_clustering_liver, cex = 0.25)
+
+# ward.D # Best Looking
+
+for_clustering_brain = as.dist(1 - abs(cor(x = brain, method = "spearman")))
+for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
+
+h_clustering_brain = hclust(for_clustering_brain, method = "ward.D")
+h_clustering_liver = hclust(for_clustering_liver, method = "ward.D")
+
+plot(h_clustering_brain, cex = 0.25)
+plot(h_clustering_liver, cex = 0.25)
+
+# ward.D2
+
+for_clustering_brain = as.dist(1 - abs(cor(x = brain, method = "spearman")))
+for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
+
+h_clustering_brain = hclust(for_clustering_brain, method = "ward.D2")
+h_clustering_liver = hclust(for_clustering_liver, method = "ward.D2")
+
+plot(h_clustering_brain, cex = 0.25)
+plot(h_clustering_liver, cex = 0.25)
+
+# mcquitty
+
+for_clustering_brain = as.dist(1 - abs(cor(x = brain, method = "spearman")))
+for_clustering_liver = as.dist(1 - abs(cor(x = liver, method = "spearman")))
+
+h_clustering_brain = hclust(for_clustering_brain, method = "mcquitty")
+h_clustering_liver = hclust(for_clustering_liver, method = "mcquitty")
+
+plot(h_clustering_brain, cex = 0.25)
+plot(h_clustering_liver, cex = 0.25)
+
+```
