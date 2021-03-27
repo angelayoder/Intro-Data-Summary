@@ -126,8 +126,8 @@ rats_liver = sub("_.*", "", colnames(liver))
 color_brain = labels2colors(rats_brain)
 color_liver = labels2colors(rats_liver)
 
-plotDendroAndColors(h_clustering_brain, color_brain, main = "Brain by Strain")
-plotDendroAndColors(h_clustering_liver, color_liver, main = "Liver by Strain")
+#plotDendroAndColors(h_clustering_brain, color_brain, main = "Brain by Strain", cex.dendroLabels = 0.4)
+#plotDendroAndColors(h_clustering_liver, color_liver, main = "Liver by Strain", cex.dendroLabels = 0.4)
 
 # By Batch
 
@@ -137,8 +137,8 @@ batch_liver = as.numeric(sub(".*batch", "", colnames(liver)))
 color_batch_brain = labels2colors(batch_brain)
 color_batch_liver = labels2colors(batch_liver)
 
-plotDendroAndColors(h_clustering_brain, color_batch_brain, main = "Brain by Batch")
-plotDendroAndColors(h_clustering_liver, color_batch_liver, main = "Liver by Batch")
+#plotDendroAndColors(h_clustering_brain, color_batch_brain, main = "Brain by Batch")
+#plotDendroAndColors(h_clustering_liver, color_batch_liver, main = "Liver by Batch")
 
 # By Recombinant v. Inbred
 
@@ -159,8 +159,13 @@ recomblog_liver = as.logical(recomblog_liver)
 color_recomb_brain = labels2colors(recomblog_brain)
 color_recomb_liver = labels2colors(recomblog_liver)
 
-plotDendroAndColors(h_clustering_brain, color_recomb_brain, main = "Brain by Recombinant v. Inbred")
-plotDendroAndColors(h_clustering_liver, color_recomb_liver, main = "Liver by Recombinant v. Inbred")
+totcolors_brain = cbind(color_brain, color_batch_brain, color_recomb_brain)
+colnames(totcolors_brain) = c("Strain", "Batch", "Recombinant v. Inbred")
+totcolors_liver = cbind(color_liver, color_batch_liver, color_recomb_liver)
+colnames(totcolors_liver) = c("Strain", "Batch", "Recombinant v. Inbred")
+
+plotDendroAndColors(h_clustering_brain, colors = totcolors_brain, main = "Brain", cex.dendroLabels = 0.4)
+plotDendroAndColors(h_clustering_liver, colors = totcolors_liver, main = "Liver", cex.dendroLabels = 0.4)
 
 ```
 
@@ -194,23 +199,27 @@ colnames(mat2) = c("col")
 pca_brain = pca(brain, meta = mat, center=TRUE, scale=TRUE)
 pca_liver = pca(liver, meta = mat2, center = TRUE, scale = TRUE)
 
-biplot(pca_brain, colby = "col")
-biplot(pca_liver, colby = "col")
+biplot(pca_brain, colby = "col", title = "Brain by Recombinant v. Inbred", lab = NULL)
+biplot(pca_liver, colby = "col", title = "Liver by Recombinant v. Inbred", lab = NULL)
 
 # by batch
-
-mat = matrix(batch_brain, nrow = length(batch_brain), ncol = 1)
+color_pca_batchbrain = labels2colors(batch_brain)
+mat = matrix(color_pca_batchbrain, nrow = length(batch_brain), ncol = 1)
 rownames(mat) = colnames(brain)
 colnames(mat) = c("col")
 
-mat2 = matrix(batch_liver, nrow = length(batch_liver), ncol = 1)
+
+color_pca_batchliver = labels2colors(batch_liver)
+mat2 = matrix(color_pca_batchliver, nrow = length(batch_liver), ncol = 1)
 rownames(mat2) = colnames(liver)
 colnames(mat2) = c("col")
 
 pca_brain = pca(brain, meta = mat, center=TRUE, scale=TRUE)
 pca_liver = pca(liver, meta = mat2, center = TRUE, scale = TRUE)
 
-biplot(pca_brain, colby = "col")
-biplot(pca_liver, colby = "col")
+
+
+biplot(pca_brain, colby = "col", title = "Brain by Batch", lab = NULL)
+biplot(pca_liver, colby = "col", title = "Liver by Batch", lab = NULL)
 ```
 
