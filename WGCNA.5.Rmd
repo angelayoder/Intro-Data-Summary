@@ -1,0 +1,25 @@
+---
+title: "WGCNA Section 5: Network visualization using WGCNA functions"
+author: "Angela Yoder"
+date: "`r Sys.Date()`"
+---
+
+**The goals of this program are:**
+
+1. 
+
+```{r}
+# Data input
+
+# set working directory
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
+
+phen = read.csv("Phenotype_WGCNA.csv")
+protein_brain = read.csv("Brain_WGCNA.csv")
+
+library(WGCNA)
+library(tidyverse)
+library(biomaRt)
+
+
+```

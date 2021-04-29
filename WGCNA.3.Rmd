@@ -1,0 +1,226 @@
+---
+title: "WGCNA Section 3: Relating modules to external information and identifying important
+genes"
+author: "Angela Yoder"
+date: "`r Sys.Date()`"
+---
+
+**The goals of this program are:**
+
+1. Show association between module eigengenes and clinical traits
+
+```{r}
+# Data input
+
+# set working directory
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
+
+phen = read.csv("Phenotype_WGCNA.csv")
+protein_brain = read.csv("Brain_WGCNA.csv")
+moduleColors= read.csv("moduleColors_WGCNA.csv")
+
+moduleColors = moduleColors[,2]
+
+names = protein_brain[,1]
+protein_brain = protein_brain[,2:dim(protein_brain)[2]]
+rownames(protein_brain) = names
+
+names = phen[,1]
+phen = phen[,2:3]
+rownames(phen) = names 
+
+library(WGCNA)
+library(tidyverse)
+library(biomaRt)
+
+
+```
+
+
+
+```{r}
+
+# Define numbers of genes and samples
+nGenes = ncol(protein_brain);
+nSamples = nrow(protein_brain);
+# Recalculate MEs with color labels
+MEs0 = moduleEigengenes(protein_brain, moduleColors)$eigengenes
+MEs = orderMEs(MEs0)
+moduleTraitCor = cor(MEs, phen, use = "p");
+moduleTraitPvalue = corPvalueStudent(moduleTraitCor, nSamples)
+
+
+sizeGrWindow(10,6)
+# Will display correlations and their p-values
+textMatrix = paste(signif(moduleTraitCor, 2), "\n(",
+signif(moduleTraitPvalue, 1), ")", sep = "");
+dim(textMatrix) = dim(moduleTraitCor)
+par(mar = c(6, 8.5, 3, 3));
+# Display the correlation values within a heatmap plot
+labeledHeatmap(Matrix = moduleTraitCor,
+cex.lab.y = 0.35,
+xLabels = names(phen),
+yLabels = names(MEs),
+ySymbols = names(MEs),
+colorLabels = FALSE,
+colors = greenWhiteRed(50),
+textMatrix = textMatrix,
+setStdMargins = FALSE,
+cex.text = 0.25,
+zlim = c(-1,1),
+main = paste("Module-trait relationships"))
+
+#######################################################
+# only significant p-values
+
+
+# Define numbers of genes and samples
+nGenes = ncol(protein_brain);
+nSamples = nrow(protein_brain);
+# Recalculate MEs with color labels
+MEs0 = moduleEigengenes(protein_brain, moduleColors)$eigengenes
+MEs = orderMEs(MEs0)
+moduleTraitCor = cor(MEs, phen, use = "p");
+moduleTraitPvalue = corPvalueStudent(gee, nSamples)
+
+gee = subset(moduleTraitPvalue, moduleTraitPvalue[,1] < 0.05 | moduleTraitPvalue[,2] < 0.05)
+geet = rownames(gee)
+
+gurr = subset(moduleTraitCor, rownames(moduleTraitCor) %in% geet)
+
+sizeGrWindow(10,6)
+# Will display correlations and their p-values
+textMatrix = paste(signif(gurr, 2), "\n(",
+  signif(moduleTraitPvalue, 1), ")", sep = "");
+dim(textMatrix) = dim(gurr)
+par(mar = c(6, 8.5, 3, 3));
+# Display the correlation values within a heatmap plot
+labeledHeatmap(Matrix = gurr,
+  cex.lab.y = 0.35,
+  xLabels = names(phen),
+  yLabels = rownames(gurr),
+  ySymbols = rownames(gurr),
+  colorLabels = FALSE,
+  colors = greenWhiteRed(50),
+  #textMatrix = textMatrix,
+  setStdMargins = FALSE,
+  cex.text = 0.25,
+  zlim = c(-1,1),
+  main = paste("Module-trait relationships"))
+```
+
+```{r}
+## AUC1
+
+# Define variable weight containing the weight column of datTrait
+auc1 = as.data.frame(phen$meanauc1gkg);
+names(auc1) = "auc1"
+# names (colors) of the modules
+modNames = substring(names(MEs), 3)
+geneModuleMembership = as.data.frame(cor(protein_brain, MEs, use = "p"));
+MMPvalue = as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples));
+names(geneModuleMembership) = paste("MM", modNames, sep="");
+names(MMPvalue) = paste("p.MM", modNames, sep="");
+geneTraitSignificance = as.data.frame(cor(protein_brain, auc1, use = "p"));
+GSPvalue = as.data.frame(corPvalueStudent(as.matrix(geneTraitSignificance), nSamples));
+names(geneTraitSignificance) = paste("GS.", names(auc1), sep="");
+names(GSPvalue) = paste("p.GS.", names(auc1), sep="")
+
+best = numeric(2)
+colorAUC = rownames(moduleTraitCor)
+minAUC1 = grep(min(moduleTraitCor[,1]), moduleTraitCor[,1])
+best[1] = colorAUC[minAUC1]
+maxAUC1 = grep(max(moduleTraitCor[,1]), moduleTraitCor[,1])
+best[2] = colorAUC[maxAUC1]
+
+#minAUC2 = grep(min(moduleTraitCor[,2]), moduleTraitCor[,2])
+#best[3] = colorAUC[minAUC2]
+#maxAUC2 = grep(max(moduleTraitCor[,2]), moduleTraitCor[,2])
+#best[4] = colorAUC[maxAUC2]
+
+best = sapply(best, FUN = gsub, pattern = "ME", replacement = "")
+
+
+module = best[1]
+column = match(module, modNames);
+moduleGenes = moduleColors==module;
+sizeGrWindow(7, 7);
+par(mfrow = c(1,1));
+verboseScatterplot(abs(geneModuleMembership[moduleGenes, column]),
+                   abs(geneTraitSignificance[moduleGenes, 1]),
+xlab = paste("Module Membership in", module, "module"),
+ylab = "Gene significance for auc1",
+main = paste("Module membership vs. gene significance\n"),
+cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = "black")
+
+for (i in best[2])
+{
+module = i
+column = match(module, modNames);
+moduleGenes = moduleColors==module;
+sizeGrWindow(7, 7);
+par(mfrow = c(1,1));
+verboseScatterplot(abs(geneModuleMembership[moduleGenes, column]),
+                   abs(geneTraitSignificance[moduleGenes, 1]),
+xlab = paste("Module Membership in", module, "module"),
+ylab = "Gene significance for auc1",
+main = paste("Module membership vs. gene significance\n"),
+cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = module)
+}
+
+```
+
+```{r}
+
+## AUC2
+
+# Define variable weight containing the weight column of datTrait
+auc2 = as.data.frame(phen$meanauc2gkg);
+names(auc2) = "auc2"
+# names (colors) of the modules
+modNames = substring(names(MEs), 3)
+geneModuleMembership = as.data.frame(cor(protein_brain, MEs, use = "p"));
+MMPvalue = as.data.frame(corPvalueStudent(as.matrix(geneModuleMembership), nSamples));
+names(geneModuleMembership) = paste("MM", modNames, sep="");
+names(MMPvalue) = paste("p.MM", modNames, sep="");
+geneTraitSignificance = as.data.frame(cor(protein_brain, auc2, use = "p"));
+GSPvalue = as.data.frame(corPvalueStudent(as.matrix(geneTraitSignificance), nSamples));
+names(geneTraitSignificance) = paste("GS.", names(auc1), sep="");
+names(GSPvalue) = paste("p.GS.", names(auc2), sep="")
+
+best = numeric(2)
+colorAUC = rownames(moduleTraitCor)
+minAUC2 = grep(min(moduleTraitCor[,2]), moduleTraitCor[,2])
+best[1] = colorAUC[minAUC2]
+maxAUC2 = grep(max(moduleTraitCor[,2]), moduleTraitCor[,2])
+best[2] = colorAUC[maxAUC2]
+
+best = sapply(best, FUN = gsub, pattern = "ME", replacement = "")
+
+module = best[1]
+column = match(module, modNames);
+moduleGenes = moduleColors==module;
+sizeGrWindow(7, 7);
+par(mfrow = c(1,1));
+verboseScatterplot(abs(geneModuleMembership[moduleGenes, column]),
+                   abs(geneTraitSignificance[moduleGenes, 1]),
+xlab = paste("Module Membership in", module, "module"),
+ylab = "Gene significance for auc1",
+main = paste("Module membership vs. gene significance\n"),
+cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = "black")
+
+module = best[2]
+column = match(module, modNames);
+moduleGenes = moduleColors==module;
+sizeGrWindow(7, 7);
+par(mfrow = c(1,1));
+verboseScatterplot(abs(geneModuleMembership[moduleGenes, column]),
+                   abs(geneTraitSignificance[moduleGenes, 1]),
+xlab = paste("Module Membership in", module, "module"),
+ylab = "Gene significance for auc1",
+main = paste("Module membership vs. gene significance\n"),
+cex.main = 1.2, cex.lab = 1.2, cex.axis = 1.2, col = module)
+
+
+
+```

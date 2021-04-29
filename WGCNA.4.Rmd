@@ -1,0 +1,81 @@
+---
+title: "WGCNA Section 4: Interfacing network analysis with other data such as functional
+annotation and gene ontology"
+author: "Angela Yoder"
+date: "`r Sys.Date()`"
+---
+
+**The goals of this program are:**
+
+1. 
+
+```{r}
+# Data input
+
+# set working directory
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
+
+phen = read.csv("Phenotype_WGCNA.csv")
+protein_brain = read.csv("Brain_WGCNA.csv")
+
+library(WGCNA)
+library(tidyverse)
+#library(biomaRt)
+
+# Annotation Data
+
+library(biomaRt)
+
+ensembl = useEnsembl(biomart="ensembl")
+ensembl = useEnsembl(biomart="ensembl",dataset = "rnorvegicus_gene_ensembl")
+
+get_attrib <- listAttributes(ensembl)
+go_attrib <- get_attrib[grep("GO ",get_attrib$description),]
+
+
+get_GO = getBM(attributes=c("ensembl_gene_id",
+                              "external_gene_name",
+                              "description",
+                              "chromosome_name",
+                              "start_position",
+                              "end_position",
+                              "gene_biotype",
+                            "go_id",
+                            "name_1006",
+                            "definition_1006","go_linkage_type","namespace_1003"),
+                 filters = 'biotype',
+                 values = "protein_coding",
+                 mart = ensembl)
+
+GO_fin = subset(get_GO, get_GO$ensembl_gene_id %in% colnames(protein_brain))
+
+
+```
+
+```{r}
+# Read in the probe annotation
+annot = read.csv(file = "GeneAnnotation.csv");
+# Match probes in the data set to the probe IDs in the annotation file
+probes = names(datExpr)
+probes2annot = match(probes, annot$substanceBXH)
+# Get the corresponding Locuis Link IDs
+allLLIDs = annot$LocusLinkID[probes2annot];
+# $ Choose interesting modules
+intModules = c("brown", "red", "salmon")
+for (module in intModules)
+{
+# Select module probes
+modGenes = (moduleColors==module)
+# Get their entrez ID codes
+modLLIDs = allLLIDs[modGenes];
+# Write them into a file
+fileName = paste("LocusLinkIDs-", module, ".txt", sep="");
+write.table(as.data.frame(modLLIDs), file = fileName,
+row.names = FALSE, col.names = FALSE)
+}
+# As background in the enrichment analysis, we will use all probes in the analysis.
+fileName = paste("LocusLinkIDs-all.txt", sep="");
+write.table(as.data.frame(allLLIDs), file = fileName,
+row.names = FALSE, col.names = FALSE)
+
+```

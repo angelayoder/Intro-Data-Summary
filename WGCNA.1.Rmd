@@ -1,0 +1,103 @@
+---
+title: "Data Manipulation for WGCNA Tutorial"
+author: "Angela Yoder"
+date: "`r Sys.Date()`"
+---
+
+**The goals of this program are:**
+
+1. Create new dataset from brain dataset to include only protein-coding genes and RI strains
+2. Edit phenotype data to match new brain dataset
+
+
+```{r}
+
+# set working directory
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
+
+# phenotypes dataset
+phen = read.csv("phenotypesAcetate.csv")
+phen2 = read.delim("StrainMeans_ConsumpWk2and3.txt", header = TRUE, sep = "\t")
+phen_strain = phen[,2]
+phen = phen[,3:4]
+rownames(phen) = phen_strain
+names = phen2[,1]
+phen2 = phen2[,2:3]
+rownames(phen2) = c("BXH8", names[2:length(names)])
+
+# download strain means dataset
+strainmeans_brain = read.csv("Means_strainXgene_brain.csv")
+#strainmeans_liver = read.csv("Means_strainXgene_liver.csv")
+rowname_b = strainmeans_brain[,1]
+strainmeans_brain = strainmeans_brain[,2:dim(strainmeans_brain)[2]]
+rownames(strainmeans_brain) = rowname_b
+
+# only RI
+
+hxb_brain = grep("HXB", rownames(strainmeans_brain))
+bxh_brain = grep("BXH", rownames(strainmeans_brain))
+recombinant_brain = sort(c(hxb_brain,bxh_brain))
+recomblog_brain = 1:length(rownames(strainmeans_brain))
+recomblog_brain[recombinant_brain] = 0
+recomblog_brain = recomblog_brain == 0
+
+strainmeans_brain = strainmeans_brain[recomblog_brain,]
+
+
+# libraries
+library(WGCNA)
+library(tidyverse)
+library(biomaRt)
+
+# getting only protein-coding genes from our dataset
+ensembl = useEnsembl(biomart="ensembl")
+ensembl = useEnsembl(biomart="ensembl",dataset = "rnorvegicus_gene_ensembl")
+get_anno = getBM(attributes=c("ensembl_gene_id",
+                              "external_gene_name",
+                              "description",
+                              "chromosome_name",
+                              "start_position",
+                              "end_position",
+                              "gene_biotype"),
+                 filters = 'biotype',
+                 values = "protein_coding",
+                 mart = ensembl)
+
+findpro_brain = match(get_anno$ensembl_gene_id, colnames(strainmeans_brain))
+findpro_brain = findpro_brain %>%
+  na.omit %>%
+  sort
+
+
+protein_brain = strainmeans_brain[,findpro_brain]
+
+order_strain = rownames(protein_brain)
+phen_tot = matrix(data = NA, nrow = length(order_strain), ncol = 4)
+phen_tot = as.data.frame(phen_tot)
+rownames(phen_tot) = order_strain
+colnames(phen_tot) = c(colnames(phen), colnames(phen2))
+
+
+for (j in 1:length(order_strain))
+  {
+    g = grep(paste(order_strain[j], "$", sep = ""), rownames(phen))
+    phen_tot[j,] = c(phen[g,], NA, NA)
+  }
+
+for (j in 1:length(order_strain))
+{
+  if (order_strain[j] %in% rownames(phen2))
+  {
+    g = grep(paste(order_strain[j], "$", sep = ""), rownames(phen2))
+    phen_tot[j,3:4] = phen2[g,]
+  }
+}
+
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data")
+write.csv(protein_brain, "Brain_WGCNA.csv")
+write.csv(phen_tot, "Phenotype_WGCNA.csv")
+
+
+```
+
+```
