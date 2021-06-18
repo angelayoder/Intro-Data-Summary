@@ -1,0 +1,46 @@
+```{r}
+
+# Annotation Data
+
+library(biomaRt)
+
+ensembl = useEnsembl(biomart="ensembl")
+ensembl = useEnsembl(biomart="ensembl",dataset = "rnorvegicus_gene_ensembl")
+
+get_attrib <- listAttributes(ensembl)
+go_attrib <- get_attrib[grep("GO ",get_attrib$description),]
+
+# getting uniprot ids
+get_uniprot = getBM(attributes=c("ensembl_gene_id",
+                              "external_gene_name",
+                              "description",
+                              "chromosome_name",
+                              "start_position",
+                              "end_position",
+                              "gene_biotype",
+                            "uniprot_gn_id",
+                            "name_1006",
+                            "definition_1006","go_linkage_type","namespace_1003"),
+                 filters = 'biotype',
+                 values = "protein_coding",
+                 mart = ensembl)
+
+# gettin uniprot ids just from our genes
+GO_fin = subset(get_uniprot, get_uniprot$ensembl_gene_id %in% colnames(protein_brain))
+
+# secreted genes from database
+secreted = read.delim("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/uniprot-rat+secreted+locations_(location__Secreted+[SL-0243]_+type--.tab", header = TRUE, sep = "\t")
+
+# getting only the secreted genes
+secreted_brain_annot = subset(GO_fin, GO_fin$uniprot_gn_id %in% secreted$Entry)
+
+# subsetting protein_brain by secreted genes
+protein_brain_edit = rbind(colnames(protein_brain), protein_brain)
+protein_brain_edit = t(protein_brain_edit)
+
+secreted_protein_brain = subset(protein_brain_edit, protein_brain_edit[,1] %in% secreted_brain_annot$ensembl_gene_id)
+secreted_protein_brain = t(secreted_protein_brain)
+secreted_protein_brain = secreted_protein_brain[2:31,]
+
+
+```
