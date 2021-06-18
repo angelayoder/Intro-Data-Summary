@@ -71,12 +71,14 @@ adjacency = adjacency(protein_brain, power = softPower)
 
 TOM = TOMsimilarity(adjacency);
 dissTOM = 1 - TOM
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data")
+write.csv(TOM, "TOM.csv")
 
 geneTree = hclust(as.dist(dissTOM), method = "average")
 plot(geneTree, labels = FALSE)
 
 # We like large modules, so we set the minimum module size relatively high:
-minModuleSize = 15;
+minModuleSize = 5;
 # Module identification using dynamic tree cut:
 dynamicMods = cutreeDynamic(dendro = geneTree, distM = dissTOM,
 deepSplit = 4, pamRespectsDendro = FALSE,

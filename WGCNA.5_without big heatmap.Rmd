@@ -4,6 +4,9 @@ author: "Angela Yoder"
 date: "`r Sys.Date()`"
 ---
 
+**The goals of this program are:**
+
+1. Visualize relationship between modules and phenotype
 
 ```{r, echo = F, results = 'hide', message = F, warning = F}
 # Data input
@@ -52,59 +55,28 @@ removeME = function(x)
   return(ret)
 }
 
-auc1_names = removeME(auc1_names)
-auc2_names = removeME(auc2_names)
-et2_names = removeME(et2_names)
-et3_names = removeME(et3_names)
+#auc1_names = removeME(auc1_names)
+#auc2_names = removeME(auc2_names)
+#et2_names = removeME(et2_names)
+#et3_names = removeME(et3_names)
 
 ```
 
+
 ```{r}
-
-# Calculate topological overlap anew: this could be done more efficiently by saving the TOM
-# calculated during module detection, but let us do it again here.
-dissTOM = 1-TOMsimilarityFromExpr(protein_brain, power = 8);
-# Transform dissTOM with a power to make moderately strong connections more visible in the heatmap
-plotTOM = dissTOM^7;
-# Set diagonal to NA for a nicer plot
-diag(plotTOM) = NA;
-# Call the plot function
-#sizeGrWindow(9,9)
-geneTree = hclust(as.dist(dissTOM), method = "average")
-TOMplot(plotTOM, geneTree, moduleColors, main = "Network heatmap plot, all genes")
-
-```
-```{r}
-
-#### 400 random genes heatmap- meh
-nSelect = 400
-# For reproducibility, we set the random seed
-set.seed(10);
-select = sample(nGenes, size = nSelect);
-selectTOM = dissTOM[select, select];
-# There’s no simple way of restricting a clustering tree to a subset of genes, so we must re-cluster.
-selectTree = hclust(as.dist(selectTOM), method = "average")
-selectColors = moduleColors[select];
-# Open a graphical window
-#sizeGrWindow(9,9)
-# Taking the dissimilarity to a power, say 10, makes the plot more informative by effectively changing
-# the color palette; setting the diagonal to NA also improves the clarity of the plot
-plotDiss = selectTOM^7;
-diag(plotDiss) = NA;
-TOMplot(plotDiss, selectTree, selectColors, main = "Network heatmap plot, selected genes")
-
-```
-I'm doing something wrong here...
-```{r}
+# Recalculate module eigengenes
+MEs = moduleEigengenes(protein_brain, moduleColors)$eigengenes
 ### auc1
 
-# Recalculate module eigengenes
-MEs = moduleEigengenes(protein_brain, auc1_names)$eigengenes
+# Eigengenes related to auc1
+
+MEs_auc1 = MEs[, auc1_names]
+
 # Isolate weight from the clinical traits
 auc1 = as.data.frame(phen$meanauc1gkg);
 names(auc1) = "auc1"
 # Add the weight to existing module eigengenes
-MET = orderMEs(cbind(MEs, auc1))
+MET = orderMEs(cbind(MEs_auc1, auc1))
 # Plot the relationships among the eigengenes and the trait
 #sizeGrWindow(5,7.5);
 par(cex = 0.5)
@@ -113,13 +85,15 @@ plotEigengeneNetworks(MET, "", marDendro = c(0,4,1,2), marHeatmap = c(3,4,1,2), 
 
 ### auc2
 
-# Recalculate module eigengenes
-MEs = moduleEigengenes(protein_brain, moduleColors)$eigengenes
+# Eigengenes related to auc1
+
+MEs_auc2 = MEs[, auc2_names]
+
 # Isolate weight from the clinical traits
-auc1 = as.data.frame(phen$meanauc1gkg);
-names(auc1) = "auc1"
+auc2 = as.data.frame(phen$meanauc2gkg);
+names(auc2) = "auc2"
 # Add the weight to existing module eigengenes
-MET = orderMEs(cbind(MEs, auc1))
+MET = orderMEs(cbind(MEs_auc2, auc2))
 # Plot the relationships among the eigengenes and the trait
 #sizeGrWindow(5,7.5);
 par(cex = 0.5)
@@ -128,13 +102,15 @@ plotEigengeneNetworks(MET, "", marDendro = c(0,4,1,2), marHeatmap = c(3,4,1,2), 
 
 ### Etwk2
 
-# Recalculate module eigengenes
-MEs = moduleEigengenes(protein_brain, moduleColors)$eigengenes
+# Eigengenes related to auc1
+
+MEs_et2 = MEs[, et2_names]
+
 # Isolate weight from the clinical traits
-auc1 = as.data.frame(phen$meanauc1gkg);
-names(auc1) = "auc1"
+et2 = as.data.frame(phen$EtOHing_wk2);
+names(et2) = "et2"
 # Add the weight to existing module eigengenes
-MET = orderMEs(cbind(MEs, auc1))
+MET = orderMEs(cbind(MEs_et2, et2))
 # Plot the relationships among the eigengenes and the trait
 #sizeGrWindow(5,7.5);
 par(cex = 0.5)
@@ -143,13 +119,15 @@ plotEigengeneNetworks(MET, "", marDendro = c(0,4,1,2), marHeatmap = c(3,4,1,2), 
 
 ### Etwk3
 
-# Recalculate module eigengenes
-MEs = moduleEigengenes(protein_brain, moduleColors)$eigengenes
+# Eigengenes related to auc1
+
+MEs_et3 = MEs[, et3_names]
+
 # Isolate weight from the clinical traits
-auc1 = as.data.frame(phen$meanauc1gkg);
-names(auc1) = "auc1"
+et3 = as.data.frame(phen$EtOHing_wk3);
+names(et3) = "et3"
 # Add the weight to existing module eigengenes
-MET = orderMEs(cbind(MEs, auc1))
+MET = orderMEs(cbind(MEs_et3, et3))
 # Plot the relationships among the eigengenes and the trait
 #sizeGrWindow(5,7.5);
 par(cex = 0.5)

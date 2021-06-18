@@ -8,18 +8,79 @@ date: "`r Sys.Date()`"
 
 1. 
 
-```{r}
+```{r, echo = F, results = 'hide', message = F, warning = F}
 # Data input
 
 # set working directory
 setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
 
-phen = read.csv("Phenotype_WGCNA.csv")
+# upload data
+#phen = read.csv("Phenotype_WGCNA.csv")
 protein_brain = read.csv("Brain_WGCNA.csv")
+moduleColors= read.csv("moduleColors_block_WGCNA.csv")
+chosenModules = read.csv("Chosen Modules.csv")
+
+# fix problems
+moduleColors = moduleColors[,2]
+names = protein_brain[,1]
+protein_brain = protein_brain[,2:dim(protein_brain)[2]]
+rownames(protein_brain) = names
+
+#names = phen[,1]
+#phen = phen[,2:5]
+#rownames(phen) = names 
 
 library(WGCNA)
 library(tidyverse)
-library(biomaRt)
+nGenes = ncol(protein_brain)
+
+#TOM = read.csv("TOM.csv")
+
+#TOM = TOM[,2:dim(TOM)[2]]
+annot = read.csv(file = "Annotation.csv")
+
+chosenmodules = read.csv("Chosen Modules.csv")
+
+intModules = chosenModules[,1]
+for (i in 1:length(intModules))
+{
+  b = sub("ME", "", intModules[i])
+  intModules[i] = b
+}
+```
+Error in file(file, ifelse(append, "a", "w")) : cannot open the connection
+```{r}
+
+
+# Get TOM
+
+load("C:/Users/angel/OneDrive/Desktop/Git/Intro Data Summary/blockwiseTOM-block.1.RData")
+
+
+
+# Select modules
+modules = intModules
+# Select module probes
+probes = names(protein_brain)
+inModule = is.finite(match(moduleColors, modules))
+modProbes = probes[inModule]
+modGenes = annot$external_gene_name[match(modProbes, annot$ensembl_gene_id)]
+# Select the corresponding Topological Overlap
+modTOM = TOM[inModule, inModule]
+#modTOM = signif(modTOM, digits = 4)
+gee = Matrix::forceSymmetric(as.matrix(modTOM),uplo="L")
+#gee = as.data.frame(gee)
+dimnames(gee) = list(modProbes, modProbes)
+
+# Export the network into edge and node list files Cytoscape can read
+cyt = exportNetworkToCytoscape(gee,
+  edgeFile = paste("CytoscapeInput-edges-", paste(modules, collapse="-"), ".txt", sep=""),
+  nodeFile = paste("CytoscapeInput-nodes-", paste(modules, collapse="-"), ".txt", sep=""),
+  weighted = TRUE,
+  threshold = 0.02,
+  nodeNames = modProbes,
+  altNodeNames = modGenes,
+  nodeAttr = moduleColors[inModule])
 
 
 ```

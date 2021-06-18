@@ -1,0 +1,196 @@
+---
+title: "WGCNA Section 4: Interfacing network analysis with other data such as functional
+annotation and gene ontology"
+author: "Angela Yoder"
+date: "`r Sys.Date()`"
+---
+
+**The goals of this program are:**
+
+1. Find problems with enrichmentAnalysis
+
+It seems there are 1115 rows with a significant value for FDR (less than 0.05). Setting the threshold type seeems to change some element of row selection as total number of rows decrease, but does not map one-to-one onto the FDR values less than 0.05. The only time the number of FDR values less than 0.01 decreases is if the threshold is very low for FDR, using a stricter analysis like Bonferroni
+Check if the 1115 are the same for each iteration. The dataframes produced by running the enrichmentAnalysis and then pulling out values of FDR < 0.05 appear to be the same. 
+
+```{r, echo = F, results = 'hide', message = F, warning = F}
+# Data input
+
+# set working directory
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
+
+# upload data
+phen = read.csv("Phenotype_WGCNA.csv")
+protein_brain = read.csv("Brain_WGCNA.csv")
+moduleColors= read.csv("moduleColors_WGCNA.csv")
+chosenModules = read.csv("Chosen Modules.csv")
+
+# fix problems
+moduleColors = moduleColors[,2]
+names = protein_brain[,1]
+protein_brain = protein_brain[,2:dim(protein_brain)[2]]
+rownames(protein_brain) = names
+
+names = phen[,1]
+phen = phen[,2:5]
+rownames(phen) = names 
+
+# Read in the probe annotation
+setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
+annot = read.csv(file = "Annotation.csv");
+annot = annot[,2:dim(annot)[2]]
+
+library(WGCNA)
+library(tidyverse)
+
+
+# Match probes in the data set to the probe IDs in the annotation file
+probes = names(protein_brain)
+probes2annot = match(probes, annot$ensembl_gene_id)
+# Get the corresponding Locuis Link IDs
+allLLIDs = annot$external_gene_name[probes2annot];
+
+
+
+```
+
+FDR threshold 0.05
+```{r}
+library(anRichment)
+GOcollection = buildGOcollection(organism = "rat")
+
+entrez = convert2entrez(organism = "rat", symbol = allLLIDs);
+
+#GOenr = enrichmentAnalysis(classLabels = moduleColors, identifiers = allLLIDs);
+
+#GOenr = GOenrichmentAnalysis(moduleColors, allLLIDs, organism = "rat", nBestP = 10);
+GOenr = enrichmentAnalysis(
+  classLabels = moduleColors, identifiers = entrez,
+  refCollection = GOcollection,
+  useBackground = "given",
+  threshold = 0.05,
+  getFDR = T, 
+  thresholdType = "FDR",
+  getOverlapEntrez = TRUE,
+  getOverlapSymbols = TRUE,
+  ignoreLabels = "grey");
+
+
+
+tab = GOenr$enrichmentTable
+
+
+
+
+```
+Bonferroni 0.05
+```{r}
+
+GOenr = enrichmentAnalysis(
+  classLabels = moduleColors, identifiers = entrez,
+  refCollection = GOcollection,
+  useBackground = "given",
+  threshold = 0.05,
+  getFDR = T, 
+  thresholdType = "Bonferroni",
+  getOverlapEntrez = TRUE,
+  getOverlapSymbols = TRUE,
+  ignoreLabels = "grey");
+
+
+
+bontab = GOenr$enrichmentTable
+
+```
+
+Nominal 0.05
+```{r}
+
+GOenr = enrichmentAnalysis(
+  classLabels = moduleColors, identifiers = entrez,
+  refCollection = GOcollection,
+  useBackground = "given",
+  threshold = 0.05,
+  getFDR = T, 
+  thresholdType = "nominal",
+  getOverlapEntrez = TRUE,
+  getOverlapSymbols = TRUE,
+  ignoreLabels = "grey");
+
+
+
+nom5tab = GOenr$enrichmentTable
+
+```
+
+```{r}
+
+## look at total number
+
+dim(tab)
+dim(bontab)
+dim(nom5tab)
+
+## look at number below threshold
+
+dim(tab[tab$FDR < 0.05,])
+dim(bontab[bontab$FDR < 0.05,])
+dim(nom5tab[nom5tab$FDR < 0.05,])
+
+```
+
+FDR 0.10
+```{r}
+
+GOenr = enrichmentAnalysis(
+  classLabels = moduleColors, identifiers = entrez,
+  refCollection = GOcollection,
+  useBackground = "given",
+  threshold = 0.10,
+  getFDR = T, 
+  thresholdType = "FDR",
+  getOverlapEntrez = TRUE,
+  getOverlapSymbols = TRUE,
+  ignoreLabels = "grey");
+
+
+
+FDR10tab = GOenr$enrichmentTable
+
+```
+
+FDR 0.001
+```{r}
+
+GOenr = enrichmentAnalysis(
+  classLabels = moduleColors, identifiers = entrez,
+  refCollection = GOcollection,
+  useBackground = "given",
+  threshold = 0.000001,
+  getFDR = T, 
+  thresholdType = "nominal",
+  getOverlapEntrez = TRUE,
+  getOverlapSymbols = TRUE,
+  ignoreLabels = "grey");
+
+
+
+FDR001tab = GOenr$enrichmentTable
+
+```
+
+```{r}
+
+dim(tab)
+dim(FDR10tab)
+dim(FDR01tab)
+
+dim(tab[tab$FDR < 0.05,])
+dim(FDR10tab[FDR10tab$FDR < 0.05,])
+dim(FDR01tab[FDR01tab$FDR < 0.05,])
+
+table(tab[tab$FDR < 0.05, ] == nom5tab[nom5tab$FDR < 0.05, ], useNA = 'ifany')
+table(tab[tab$FDR < 0.05, ] == nom10tab[nom10tab$FDR < 0.05, ], useNA = 'ifany')
+
+bee = tab[tab$FDR < 0.05, ]
+gee = nom5tab[nom5tab$FDR < 0.05, ]
+```

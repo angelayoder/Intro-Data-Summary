@@ -18,7 +18,7 @@ setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/")
 # upload data
 phen = read.csv("Phenotype_WGCNA.csv")
 protein_brain = read.csv("Brain_WGCNA.csv")
-moduleColors= read.csv("moduleColors_WGCNA.csv")
+moduleColors= read.csv("moduleColors_block_WGCNA.csv")
 chosenModules = read.csv("Chosen Modules.csv")
 
 # fix problems
@@ -127,7 +127,7 @@ GOenr = enrichmentAnalysis(
   classLabels = moduleColors, identifiers = entrez,
   refCollection = GOcollection,
   useBackground = "given",
-  threshold = 0.05,
+  threshold = 1,
   getFDR = T, 
   thresholdType = "FDR",
   getOverlapEntrez = TRUE,
@@ -139,15 +139,15 @@ GOenr = enrichmentAnalysis(
 
 #tab = GOenr$bestPTerms[[4]]$enrichment
 tab = GOenr$enrichmentTable
-check = tab$FDR > 0.05
+tab = tab[tab$FDR < 0.05,]
 tab10 = tab[tab$rank <= 10, ]
 
-tab_Bon = tab[tab$Bonferroni < 0.05,]
+
 
 #setwd("C:/Users/angel/OneDrive/Desktop/Saba Lab/Data/GeneID tables/")
 
 write.table(tab, file = "GOEnrichmentTable.csv", sep = ",", quote = TRUE, row.names = FALSE)
-write.table(tab_Bon, file = "GOEnrichmentSigBon.csv", sep = ",", quote = TRUE, row.names = FALSE)
+
 
 
 ```
