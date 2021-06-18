@@ -51,7 +51,7 @@ for (i in 1:length(intModules))
 Error in file(file, ifelse(append, "a", "w")) : cannot open the connection
 ```{r}
 
-
+# trying to solve git problem
 # Get TOM
 
 load("C:/Users/angel/OneDrive/Desktop/Git/Intro Data Summary/blockwiseTOM-block.1.RData")
